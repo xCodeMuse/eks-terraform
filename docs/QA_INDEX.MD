@@ -39,11 +39,13 @@ This document provides a central index for all QA-related files and resources fo
 
 - [EKS Managed Node Group Test Strategy](../modules/eks-managed-node-group/test_strategy.md) - Test strategy for the EKS managed node group module.
 - [Karpenter Test Strategy](../modules/karpenter/test_strategy.md) - Test strategy for the Karpenter module.
+- [Fargate Profile Test Strategy](../modules/fargate-profile/test_strategy.md) - Test strategy for the Fargate Profile module.
 
 ## Module-Specific Test Reports
 
 - [EKS Managed Node Group Test Report](../modules/eks-managed-node-group/test_report.md) - Test report for the EKS managed node group module.
 - [Karpenter Test Report](../modules/karpenter/test/test_report.md) - Test report for the Karpenter module.
+- [Fargate Profile Test Report](../modules/fargate-profile/tests/test_report.md) - Test report for the Fargate Profile module.
 
 ## Test Execution
 
@@ -53,3 +55,19 @@ This document provides a central index for all QA-related files and resources fo
 
 - [Test Directory README](../test/README.md) - Overview of the test directory structure and usage.
 - [Misc Test Strategy](../misc/test_strategy.md) - Additional test strategy documentation.
+
+## Module-Specific Test Files
+
+### Fargate Profile Module
+- [Basic Tests](../modules/fargate-profile/tests/basic.tftest.hcl) - Basic test cases for the Fargate Profile module.
+- [Advanced Tests](../modules/fargate-profile/tests/advanced.tftest.hcl) - Advanced test cases for the Fargate Profile module.
+- [Test Fixtures](../modules/fargate-profile/tests/fixtures/) - Test fixtures for the Fargate Profile module.
+- [Mock Module](../modules/fargate-profile/tests/mock_module.tf) - Mock module for testing the Fargate Profile module.
+- [Test Results](../modules/fargate-profile/tests/results/) - Test result logs for the Fargate Profile module.
+
+## Code Reviews
+
+- [Code Review Document](code_review.md) - Comprehensive code review of various modules including:
+  - Root EKS module
+  - Karpenter module
+  - Fargate Profile module

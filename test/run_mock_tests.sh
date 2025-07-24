@@ -41,8 +41,8 @@ run_test() {
 tests_passed=0
 tests_total=7
 
-# Create results directory if it doesn't exist
-mkdir -p results
+# Create reports directory if it doesn't exist
+mkdir -p ../docs/test_reports
 
 # Initialize Terraform
 print_header "Initializing Terraform"
@@ -86,8 +86,8 @@ pass_percentage=$(( (tests_passed * 100) / tests_total ))
 print_header "Generating Test Report"
 
 # Create a copy of the template
-cp test_report_template.md "results/mock_test_report_$(date +%Y%m%d_%H%M%S).md"
-REPORT_FILE="results/mock_test_report_$(date +%Y%m%d_%H%M%S).md"
+cp ../docs/test_reports/test_report_template.md "../docs/test_reports/mock_test_report_$(date +%Y%m%d_%H%M%S).md"
+REPORT_FILE="../docs/test_reports/mock_test_report_$(date +%Y%m%d_%H%M%S).md"
 
 # Get current date
 DATE=$(date +"%Y-%m-%d")

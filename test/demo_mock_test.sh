@@ -26,8 +26,8 @@ simulate_test() {
   echo -e "${GREEN}✅ $test_name passed in $duration seconds${NC}"
 }
 
-# Create results directory if it doesn't exist
-mkdir -p results
+# Create reports directory if it doesn't exist
+mkdir -p ../docs/test_reports
 
 # Print introduction
 print_header "EKS Module Mock Test Demo"
@@ -69,7 +69,7 @@ read
 print_header "Generating Test Report"
 echo -e "${BLUE}Generating test report...${NC}"
 sleep 2
-echo -e "${GREEN}Test report generated: results/sample_mock_test_report.md${NC}"
+echo -e "${GREEN}Test report generated: ../docs/test_reports/sample_mock_test_report.md${NC}"
 echo -e "\nPress Enter to view the report..."
 read
 
@@ -79,15 +79,15 @@ echo -e "${BLUE}Opening sample test report...${NC}"
 
 # Check if we're on macOS or Linux and open the file accordingly
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  open results/sample_mock_test_report.md
+  open ../docs/test_reports/sample_mock_test_report.md
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
   if command -v xdg-open &> /dev/null; then
-    xdg-open results/sample_mock_test_report.md
+    xdg-open ../docs/test_reports/sample_mock_test_report.md
   else
-    echo -e "${YELLOW}Cannot open the file automatically. Please open results/sample_mock_test_report.md manually.${NC}"
+    echo -e "${YELLOW}Cannot open the file automatically. Please open ../docs/test_reports/sample_mock_test_report.md manually.${NC}"
   fi
 else
-  echo -e "${YELLOW}Cannot open the file automatically. Please open results/sample_mock_test_report.md manually.${NC}"
+  echo -e "${YELLOW}Cannot open the file automatically. Please open ../docs/test_reports/sample_mock_test_report.md manually.${NC}"
 fi
 
 echo -e "\n${GREEN}Demo completed!${NC}"

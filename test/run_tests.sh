@@ -117,7 +117,7 @@ generate_report() {
   pass_percentage=$(( (total_passed * 100) / total_tests ))
   
   # Generate report
-  ./generate_report.sh "results/test_report_$(date +%Y%m%d_%H%M%S).md"
+  ./generate_report.sh "../docs/test_reports/test_report_$(date +%Y%m%d_%H%M%S).md"
   
   echo -e "\n${YELLOW}Overall Test Summary: ${total_passed}/${total_tests} tests passed (${pass_percentage}%)${NC}"
 }

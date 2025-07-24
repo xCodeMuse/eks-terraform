@@ -87,58 +87,109 @@ make clean
 
 ## Test Cases
 
-### Basic Tests
+This test suite includes both unit tests and functional tests to provide comprehensive validation of the AWS EKS module.
 
-The basic tests validate the following aspects of the module:
+### Unit Tests vs. Functional Tests
 
-1. **Basic Cluster Creation**: Verifies that the EKS cluster is created successfully with the correct configuration.
+| Characteristic | Unit Tests | Functional Tests |
+|----------------|------------|------------------|
+| Resources Created | No actual AWS resources | Real AWS resources |
+| Execution Speed | Fast (seconds) | Slow (minutes) |
+| Cost | Free | Incurs AWS charges |
+| Validation Scope | Configuration syntax and structure | End-to-end functionality |
+| Dependencies | Mocked | Real |
+| Command | `plan` | `apply` |
+| CI/CD Friendly | Yes, no credentials needed | Requires AWS credentials |
 
-2. **Node Groups**: Validates the creation and configuration of EKS managed node groups.
+### Unit Tests (Mock Tests)
 
-3. **Fargate Profiles**: Checks that Fargate profiles are created correctly.
-
-4. **OIDC Provider**: Ensures the OIDC provider for IAM Roles for Service Accounts (IRSA) is set up properly.
-
-5. **Security Groups**: Validates the security group configurations for the cluster and nodes.
-
-### Advanced Tests
-
-The advanced tests validate more complex configurations and edge cases:
-
-1. **IPv6 Configuration**: Tests the module with IPv6 networking enabled.
-
-2. **Private-Only Endpoint**: Tests the module with only private API endpoint access.
-
-3. **Custom Security Group Rules**: Tests the module with custom security group rules.
-
-4. **Custom Add-ons**: Tests the module with custom EKS add-on configurations.
-
-5. **Custom Node Groups**: Tests the module with various node group configurations including spot instances and GPU nodes.
-
-6. **Custom Fargate Profiles**: Tests the module with multiple Fargate profile configurations.
-
-### Mock Tests
-
-The mock tests validate the module configuration without creating actual AWS resources:
+The mock tests (`mock_test.tftest.hcl`) are **unit tests** because they validate the module configuration without creating actual AWS resources:
 
 1. **Module Configuration**: Validates the basic module structure and dependencies.
+   ```hcl
+   run "validate_module_configuration" {
+     command = plan
+     assert {
+       condition     = length(module.vpc) > 0
+       error_message = "VPC module not configured correctly"
+     }
+   }
+   ```
 
 2. **Cluster Configuration**: Verifies the EKS cluster configuration parameters.
+   ```hcl
+   run "validate_cluster_configuration" {
+     command = plan
+     assert {
+       condition     = module.eks.cluster_version == "1.29"
+       error_message = "Cluster version should be 1.29"
+     }
+   }
+   ```
 
 3. **Node Group Configuration**: Checks the EKS managed node group configurations.
+   ```hcl
+   run "validate_node_group_configuration" {
+     command = plan
+     assert {
+       condition     = length(module.eks.eks_managed_node_groups) == 2
+       error_message = "Should have 2 EKS managed node groups"
+     }
+   }
+   ```
 
 4. **Fargate Profile Configuration**: Validates the Fargate profile configurations.
-
 5. **Add-on Configuration**: Verifies the EKS add-on configurations.
-
 6. **Security Group Configuration**: Checks the security group configurations.
-
 7. **IAM Role Configuration**: Validates the IAM role configurations.
 
-These mock tests are useful for:
+These unit tests are useful for:
 - Quick validation during development
 - CI/CD pipelines where creating actual resources is not feasible
 - Validating configuration without incurring AWS costs
+
+### Functional Tests
+
+The basic and advanced tests (`basic.tftest.hcl` and `advanced.tftest.hcl`) are **functional tests** because they create actual AWS resources and validate their behavior:
+
+#### Basic Functional Tests
+
+1. **Basic Cluster Creation**: Verifies that the EKS cluster is created successfully with the correct configuration.
+   ```hcl
+   run "validate_cluster_creation" {
+     command = apply
+     assert {
+       condition     = module.eks.cluster_status == "ACTIVE"
+       error_message = "EKS cluster is not active"
+     }
+   }
+   ```
+
+2. **Node Groups**: Validates the creation and configuration of EKS managed node groups.
+   ```hcl
+   run "validate_node_groups" {
+     command = apply
+     assert {
+       condition     = length(module.eks.eks_managed_node_groups) > 0
+       error_message = "No EKS managed node groups created"
+     }
+   }
+   ```
+
+3. **Fargate Profiles**: Checks that Fargate profiles are created correctly.
+4. **OIDC Provider**: Ensures the OIDC provider for IAM Roles for Service Accounts (IRSA) is set up properly.
+5. **Security Groups**: Validates the security group configurations for the cluster and nodes.
+
+#### Advanced Functional Tests
+
+1. **IPv6 Configuration**: Tests the module with IPv6 networking enabled.
+2. **Private-Only Endpoint**: Tests the module with only private API endpoint access.
+3. **Custom Security Group Rules**: Tests the module with custom security group rules.
+4. **Custom Add-ons**: Tests the module with custom EKS add-on configurations.
+5. **Custom Node Groups**: Tests the module with various node group configurations including spot instances and GPU nodes.
+6. **Custom Fargate Profiles**: Tests the module with multiple Fargate profile configurations.
+
+These functional tests provide comprehensive validation of the module's behavior in a real AWS environment, ensuring that resources are created correctly and function as expected.
 
 ## Test Environment Variables
 
@@ -156,7 +207,7 @@ REGION=us-east-1 TEST_TIMEOUT=90m make test
 
 ## Test Reporting
 
-The test directory includes scripts to help generate test reports:
+The test directory includes scripts to help generate and manage test reports:
 
 1. **generate_report.sh**: Creates a test report template with environment information pre-filled
    ```bash
@@ -178,9 +229,14 @@ The test directory includes scripts to help generate test reports:
    ./demo_mock_test.sh
    ```
 
-Test reports are saved in the `results/` directory with timestamps in the filename.
+5. **manage_reports.sh**: Helps manage test reports
+   ```bash
+   ./manage_reports.sh [list|archive|cleanup|summary]
+   ```
 
-For detailed information about test reports, see [REPORTS_README.md](./REPORTS_README.md).
+Test reports are saved in the `../docs/test_reports/` directory with timestamps in the filename.
+
+For detailed information about test reports, see [README.md](../docs/test_reports/README.md).
 
 ### Mock Test Reports
 
@@ -211,6 +267,47 @@ This is useful for:
 - Understanding the test process
 - Seeing what a test report looks like
 - Training new team members on the testing approach
+
+## Test Report Structure
+
+The test reports follow a standardized structure to ensure consistency and completeness:
+
+1. **Test Summary**: Overview of the test run, including date, tester, and versions
+2. **Environment Details**: Information about the AWS environment used for testing
+3. **Test Results**: Detailed results for each test case, organized by category
+4. **Performance Metrics**: Timing information for resource creation and destruction
+5. **Test Coverage**: Analysis of which module components were tested
+6. **Known Limitations**: Documentation of any test gaps or limitations
+7. **Conclusion & Next Steps**: Summary of findings and recommendations
+8. **Appendices**: Test logs and verification commands
+
+For more information about test reports, see [REPORTS_README.md](./REPORTS_README.md).
+
+## Managing Test Reports
+
+The `manage_reports.sh` script provides tools for managing test reports:
+
+1. **List Reports**: View all test reports in the results directory
+   ```bash
+   ./manage_reports.sh list
+   ```
+
+2. **Archive Reports**: Archive test reports into a compressed file
+   ```bash
+   ./manage_reports.sh archive
+   ```
+
+3. **Clean Up Reports**: Remove old test reports
+   ```bash
+   ./manage_reports.sh cleanup
+   ```
+
+4. **Report Summary**: View a summary of all test reports
+   ```bash
+   ./manage_reports.sh summary
+   ```
+
+This helps maintain an organized test report repository, especially when running tests frequently.
 
 ## Important Notes
 

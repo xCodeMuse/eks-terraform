@@ -4,7 +4,7 @@
 # Usage: ./generate_report.sh [output_file]
 
 # Default output file
-OUTPUT_FILE=${1:-"test_report.md"}
+OUTPUT_FILE=${1:-"../docs/test_reports/test_report_$(date +%Y%m%d_%H%M%S).md"}
 
 # Get current date
 DATE=$(date +"%Y-%m-%d")
@@ -23,7 +23,7 @@ AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 AWS_ACCOUNT_ID_LAST4=${AWS_ACCOUNT_ID: -4}
 
 # Create a copy of the template
-cp test_report_template.md "$OUTPUT_FILE"
+cp ../docs/test_reports/test_report_template.md "$OUTPUT_FILE"
 
 # Replace placeholders in the template
 sed -i "s/\[DATE\]/$DATE/g" "$OUTPUT_FILE"

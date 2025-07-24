@@ -61,9 +61,20 @@ This document provides a central index for all QA-related files and resources fo
 ### Fargate Profile Module
 - [Basic Tests](../modules/fargate-profile/tests/basic.tftest.hcl) - Basic test cases for the Fargate Profile module.
 - [Advanced Tests](../modules/fargate-profile/tests/advanced.tftest.hcl) - Advanced test cases for the Fargate Profile module.
+- [HIPAA Compliance Tests](../modules/fargate-profile/tests/hipaa.tftest.hcl) - HIPAA compliance test cases for the Fargate Profile module.
 - [Test Fixtures](../modules/fargate-profile/tests/fixtures/) - Test fixtures for the Fargate Profile module.
 - [Mock Module](../modules/fargate-profile/tests/mock_module.tf) - Mock module for testing the Fargate Profile module.
 - [Test Results](../modules/fargate-profile/tests/results/) - Test result logs for the Fargate Profile module.
+- [Test Makefile](../modules/fargate-profile/tests/Makefile) - Makefile for running Fargate Profile module tests.
+- [Run Mock Tests Script](../modules/fargate-profile/tests/run_mock_tests.sh) - Script to run mock tests for the Fargate Profile module.
+- [Run Mock Tests Simulation Script](../modules/fargate-profile/tests/run_mock_tests_simulation.sh) - Script to simulate running mock tests for the Fargate Profile module.
+- [Directory Structure](../modules/fargate-profile/tests/directory_structure.md) - Overview of the Fargate Profile module test directory structure.
+
+## Compliance Testing
+
+### HIPAA Compliance
+- [Fargate Profile HIPAA Tests](../modules/fargate-profile/tests/hipaa.tftest.hcl) - HIPAA compliance test cases for the Fargate Profile module.
+- [HIPAA Test Results](../modules/fargate-profile/tests/results/) - Test result logs for HIPAA compliance tests.
 
 ## Code Reviews
 

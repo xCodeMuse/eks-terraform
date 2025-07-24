@@ -1,112 +1,196 @@
-### Infrastructure Test Strategy for Fargate Profile Module
+# EKS Fargate Profile Module Test Strategy
 
-**1. Testing Framework**
-- Recommendation: [`Terraform Test Framework`](https://developer.hashicorp.com/terraform/language/tests) (built-in) instead of Terratest.
+## Overview
 
-**2. Module Under Test**
-- Path: `modules/fargate-profile/main.tf`
+This document outlines the testing strategy for the EKS Fargate Profile module. The module is responsible for creating and managing EKS Fargate profiles, which allow Kubernetes pods to run on AWS Fargate.
 
-**3. Inputs**
-- `create` [`variable.create()`](variables.tf:1): Determines whether to create Fargate profile or not.
-- `tags` [`variable.tags()`](variables.tf:7): A map of tags to add to all resources.
-- `create_iam_role` [`variable.create_iam_role()`](variables.tf:17): Determines whether an IAM role is created or to use an existing IAM role.
-- `cluster_ip_family` [`variable.cluster_ip_family()`](variables.tf:23): The IP family used to assign Kubernetes pod and service addresses.
-- `iam_role_arn` [`variable.iam_role_arn()`](variables.tf:29): Existing IAM role ARN for the Fargate profile.
-- `iam_role_name` [`variable.iam_role_name()`](variables.tf:35): Name to use on IAM role created.
-- `iam_role_use_name_prefix` [`variable.iam_role_use_name_prefix()`](variables.tf:41): Determines whether the IAM role name is used as a prefix.
-- `iam_role_path` [`variable.iam_role_path()`](variables.tf:47): IAM role path.
-- `iam_role_description` [`variable.iam_role_description()`](variables.tf:53): Description of the role.
-- `iam_role_permissions_boundary` [`variable.iam_role_permissions_boundary()`](variables.tf:59): ARN of the policy that is used to set the permissions boundary for the IAM role.
-- `iam_role_attach_cni_policy` [`variable.iam_role_attach_cni_policy()`](variables.tf:65): Whether to attach the CNI IAM policy to the IAM role.
-- `iam_role_additional_policies` [`variable.iam_role_additional_policies()`](variables.tf:71): Additional policies to be added to the IAM role.
-- `iam_role_tags` [`variable.iam_role_tags()`](variables.tf:77): A map of additional tags to add to the IAM role created.
-- `create_iam_role_policy` [`variable.create_iam_role_policy()`](variables.tf:87): Determines whether an IAM role policy is created or not.
-- `iam_role_policy_statements` [`variable.iam_role_policy_statements()`](variables.tf:93): A list of IAM policy statements.
-- `cluster_name` [`variable.cluster_name()`](variables.tf:103): Name of the EKS cluster.
-- `name` [`variable.name()`](variables.tf:109): Name of the EKS Fargate Profile.
-- `subnet_ids` [`variable.subnet_ids()`](variables.tf:115): A list of subnet IDs for the EKS Fargate Profile.
-- `selectors` [`variable.selectors()`](variables.tf:121): Configuration block(s) for selecting Kubernetes Pods to execute with this Fargate Profile.
-- `timeouts` [`variable.timeouts()`](variables.tf:127): Create and delete timeout configurations for the Fargate Profile.
+## Test Objectives
 
-**4. Outputs**
-- `iam_role_name` [`output.iam_role_name()`](outputs.tf:5): The name of the IAM role.
-- `iam_role_arn` [`output.iam_role_arn()`](outputs.tf:10): The Amazon Resource Name (ARN) specifying the IAM role.
-- `iam_role_unique_id` [`output.iam_role_unique_id()`](outputs.tf:15): Stable and unique string identifying the IAM role.
-- `fargate_profile_arn` [`output.fargate_profile_arn()`](outputs.tf:24): Amazon Resource Name (ARN) of the EKS Fargate Profile.
-- `fargate_profile_id` [`output.fargate_profile_id()`](outputs.tf:29): EKS Cluster name and EKS Fargate Profile name separated by a colon (`:`).
-- `fargate_profile_status` [`output.fargate_profile_status()`](outputs.tf:34): Status of the EKS Fargate Profile.
-- `fargate_profile_pod_execution_role_arn` [`output.fargate_profile_pod_execution_role_arn()`](outputs.tf:39): Amazon Resource Name (ARN) of the EKS Fargate Profile Pod execution role ARN.
+1. Verify that the module correctly creates and configures EKS Fargate profiles
+2. Ensure that IAM roles and policies are properly created and attached
+3. Validate that the module supports various configurations and options
+4. Confirm that the module meets HIPAA compliance requirements for healthcare environments
 
-**5. Resources Managed**
-- [`data.aws_partition.current`](main.tf:1): AWS partition data source.
-- [`data.aws_caller_identity.current`](main.tf:2): AWS caller identity data source.
-- [`data.aws_region.current`](main.tf:3): AWS region data source.
-- [`data.aws_iam_policy_document.assume_role_policy`](main.tf:23): IAM policy document for the assume role policy.
-- [`aws_iam_role.this`](main.tf:46): IAM role for the Fargate profile.
-- [`aws_iam_role_policy_attachment.this`](main.tf:61): IAM role policy attachments for the Fargate profile.
-- [`aws_iam_role_policy_attachment.additional`](main.tf:74): Additional IAM role policy attachments.
-- [`data.aws_iam_policy_document.role`](main.tf:89): IAM policy document for the IAM role policy.
-- [`aws_iam_role_policy.this`](main.tf:134): IAM role policy for the Fargate profile.
-- [`aws_eks_fargate_profile.this`](main.tf:147): EKS Fargate profile.
+## Test Categories
 
-**6. Test Environment Setup**
-- Backend: local
-- Credentials: `AWS_PROFILE`
-- Fixtures: Separate directory named `tests` inside the `modules/fargate-profile` directory.
+### 1. Basic Tests
 
-**7. Sample Test Inputs**
-```hcl
-cluster_name = "test-eks-cluster"
-subnet_ids   = ["subnet-12345678", "subnet-87654321"]
-selectors = [
-  {
-    namespace = "kube-system"
-  },
-  {
-    namespace = "default"
-    labels = {
-      workload-type = "fargate"
-    }
-  }
-]
-tags = {
-  Environment = "test"
-}
+Basic tests focus on the core functionality of the module, including:
+
+- Creating a Fargate profile with default settings
+- Creating a Fargate profile with a custom IAM role
+- Creating a Fargate profile with custom IAM role policies
+- Creating a Fargate profile with IPv6 configuration
+- Creating a Fargate profile with custom timeouts
+
+### 2. Advanced Tests
+
+Advanced tests focus on more complex configurations and edge cases, including:
+
+- Creating a Fargate profile with multiple selectors with complex label combinations
+- Creating a Fargate profile with an existing IAM role
+- Creating a Fargate profile with a complex IAM role configuration
+- Creating a Fargate profile with complex IAM role policies
+- Creating a Fargate profile with complex timeouts
+
+### 3. HIPAA Compliance Tests
+
+HIPAA compliance tests focus on ensuring that the module meets the requirements of the Health Insurance Portability and Accountability Act (HIPAA) for healthcare environments, including:
+
+- Creating a Fargate profile with HIPAA-compliant tags
+- Creating a Fargate profile with HIPAA-compliant IAM policies
+- Creating a Fargate profile with HIPAA-compliant network isolation
+- Creating a Fargate profile with HIPAA-compliant selectors
+- Creating a Fargate profile with HIPAA-compliant audit logging
+- Creating a Fargate profile with HIPAA-compliant encryption
+
+## Test Environment
+
+The tests use a mock AWS provider with the following configuration:
+
+- Region: us-west-2
+- Skip credentials validation: true
+- Skip requesting account ID: true
+- Skip metadata API check: true
+- Access key: mock-access-key
+- Secret key: mock-secret-key
+
+This allows the tests to run without actual AWS credentials.
+
+## Test Fixtures
+
+The test fixtures create mock AWS resources for testing:
+
+- Mock VPC
+- Mock Subnets
+- Mock EKS Cluster
+- Mock IAM Role for EKS Cluster
+- Mock Security Group
+
+These resources are used by the Fargate Profile module during testing.
+
+## Test Implementation
+
+The tests are implemented using Terraform's built-in test framework, which allows for declarative testing of Terraform modules. The tests are organized into three files:
+
+- `basic.tftest.hcl`: Contains basic test cases
+- `advanced.tftest.hcl`: Contains advanced test cases
+- `hipaa.tftest.hcl`: Contains HIPAA compliance test cases
+
+Each test case follows this structure:
+
+1. Define variables for the test
+2. Run the test with a specific command (e.g., `plan`, `apply`)
+3. Make assertions about the test results
+
+## HIPAA Compliance Testing
+
+HIPAA compliance testing is a critical aspect of the testing strategy for the EKS Fargate Profile module. The module must meet the following HIPAA requirements:
+
+### 1. Proper Tagging
+
+HIPAA-compliant resources must have appropriate tags for compliance tracking and data classification. The tests verify that the following tags are present:
+
+- Compliance: "hipaa"
+- DataSensitivity: "phi" (Protected Health Information)
+- DataClassification: "restricted"
+- Owner: Responsible party for the resource
+
+### 2. IAM Policies
+
+HIPAA-compliant resources must have appropriate IAM policies to ensure secure access and encryption. The tests verify that:
+
+- At least 3 policy statements are provided for security
+- Policies include statements to deny unencrypted transport
+- Policies include statements to deny public access
+- Policies include statements to allow logging
+
+### 3. Network Isolation
+
+HIPAA-compliant resources must be isolated in private networks. The tests verify that:
+
+- Subnet IDs are provided for network isolation
+- NetworkType tag is set to "private"
+
+### 4. Kubernetes Configuration
+
+HIPAA-compliant Kubernetes resources must have appropriate namespace and label configurations. The tests verify that:
+
+- At least one selector is provided
+- Selectors have at least 3 labels for proper classification
+- Labels include compliance, encryption, and access controls
+
+### 5. Audit Logging
+
+HIPAA-compliant resources must have appropriate audit logging. The tests verify that:
+
+- AuditLogging tag is set to "enabled"
+- LogRetention tag is set to "7-years" (HIPAA requires retention of audit logs)
+- IAM policies include permissions for CloudWatch Logs and CloudTrail
+
+### 6. Encryption
+
+HIPAA-compliant resources must be encrypted. The tests verify that:
+
+- Encryption tag is set to "required"
+- EncryptionType tag is set to "kms"
+- IAM policies include permissions for KMS
+
+## Test Execution
+
+The tests can be executed using the provided Makefile:
+
+```bash
+# Run all tests
+make test
+
+# Run only basic tests
+make test-basic
+
+# Run only advanced tests
+make test-advanced
+
+# Run only HIPAA compliance tests
+make test-hipaa
+
+# Run tests and generate a report
+make test-report
+
+# Simulate tests (for demonstration)
+make simulate-tests
 ```
 
-**8. Terraform Test Framework Approach**
-- Use Terraform's built-in test framework introduced in Terraform 1.6+
-- Create test files with `.tftest.hcl` extension
-- Define test cases that validate the module's functionality
-- Use assertions to verify expected outputs and resource attributes
+## Test Reporting
 
-**9. Test Scenarios**
-1. Basic Fargate Profile Creation
-   - Create a Fargate profile with default settings
-   - Verify that the profile is created correctly
+After running the tests, a test report is generated in `test_report.md`. This report includes:
 
-2. Custom IAM Role Configuration
-   - Create a Fargate profile with a custom IAM role
-   - Verify that the IAM role is created with the correct settings
+- A summary of all test cases and their status
+- Detailed information about each test case
+- Test coverage information
+- Recommendations for additional testing
 
-3. Custom IAM Role Policy
-   - Create a Fargate profile with custom IAM role policies
-   - Verify that the IAM role policies are created correctly
+## Continuous Integration
 
-4. IPv6 Configuration
-   - Create a Fargate profile with IPv6 configuration
-   - Verify that the CNI policy for IPv6 is attached correctly
+The tests are designed to be run in a CI/CD pipeline. The tests can be run as part of the pipeline to ensure that the module meets the requirements before being deployed to production.
 
-5. Custom Timeouts
-   - Create a Fargate profile with custom timeouts
-   - Verify that the timeouts are set correctly
+## Future Improvements
 
-**10. Test Coverage and Gaps**
-- The tests cover the basic functionality of the Fargate profile module
-- The tests do not cover actual AWS API calls or integration with a real EKS cluster
-- The tests use mock AWS resources to simulate the AWS environment
+1. **Additional Test Cases**:
+   - Test with different IAM role permissions boundary configurations
+   - Test with more complex selector patterns
+   - Test with additional HIPAA-specific configurations for different healthcare scenarios
 
-**11. CI Integration**
-- The tests can be integrated into a CI/CD pipeline
-- The tests can be run as part of the pull request validation process
-- The tests can be run as part of the release process
+2. **Integration Tests**:
+   - Add integration tests with a real EKS cluster
+   - Test the actual functionality of the Fargate profile with Kubernetes workloads
+   - Validate HIPAA compliance with real-world healthcare applications
+
+3. **Performance Tests**:
+   - Test the creation and deletion times of the Fargate profile
+   - Test with different timeout configurations
+   - Measure performance impact of HIPAA compliance features
+
+4. **Compliance Validation**:
+   - Add automated compliance validation tools
+   - Implement continuous compliance monitoring
+   - Add tests for other compliance frameworks (e.g., GDPR, SOC2)

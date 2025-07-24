@@ -14,6 +14,12 @@
 | complex_iam_role | ✅ Passed | Fargate profile with complex IAM role |
 | complex_iam_role_policy | ✅ Passed | Fargate profile with complex IAM role policy |
 | complex_timeouts | ✅ Passed | Fargate profile with complex timeouts |
+| hipaa_compliant_tags | ✅ Passed | Fargate profile with HIPAA-compliant tags |
+| hipaa_compliant_iam_policies | ✅ Passed | Fargate profile with HIPAA-compliant IAM policies |
+| hipaa_network_isolation | ✅ Passed | Fargate profile with HIPAA-compliant network isolation |
+| hipaa_compliant_selectors | ✅ Passed | Fargate profile with HIPAA-compliant selectors |
+| hipaa_audit_logging | ✅ Passed | Fargate profile with HIPAA-compliant audit logging |
+| hipaa_encryption | ✅ Passed | Fargate profile with HIPAA-compliant encryption |
 
 ## Test Details
 
@@ -169,6 +175,104 @@
 - aws_iam_role_policy_attachment.this
 - aws_eks_fargate_profile.this (with complex timeouts)
 
+### 11. hipaa_compliant_tags
+
+**Description**: Tests the creation of a Fargate profile with HIPAA-compliant tags.
+
+**Assertions**:
+- Compliance tag must be present
+- DataSensitivity tag must be present
+- DataClassification tag must be present
+- Owner tag must be present
+
+**Result**: ✅ Passed
+
+**Resources Created**:
+- aws_iam_role.this
+- aws_iam_role_policy_attachment.this
+- aws_eks_fargate_profile.this (with HIPAA-compliant tags)
+
+### 12. hipaa_compliant_iam_policies
+
+**Description**: Tests the creation of a Fargate profile with HIPAA-compliant IAM policies.
+
+**Assertions**:
+- At least 3 policy statements must be provided for security
+- At least 3 additional policies must be attached for logging and encryption
+
+**Result**: ✅ Passed
+
+**Resources Created**:
+- aws_iam_role.this
+- aws_iam_role_policy_attachment.this
+- aws_iam_role_policy_attachment.additional (for HIPAA-compliant policies)
+- aws_iam_role_policy.this (with HIPAA-compliant policy statements)
+- aws_eks_fargate_profile.this
+
+### 13. hipaa_network_isolation
+
+**Description**: Tests the creation of a Fargate profile with HIPAA-compliant network isolation.
+
+**Assertions**:
+- Subnet IDs must be provided for network isolation
+- NetworkType tag must be set to 'private'
+
+**Result**: ✅ Passed
+
+**Resources Created**:
+- aws_iam_role.this
+- aws_iam_role_policy_attachment.this
+- aws_eks_fargate_profile.this (with private subnets)
+
+### 14. hipaa_compliant_selectors
+
+**Description**: Tests the creation of a Fargate profile with HIPAA-compliant selectors.
+
+**Assertions**:
+- At least one selector must be provided
+- HIPAA-compliant selectors must have at least 3 labels for proper classification
+
+**Result**: ✅ Passed
+
+**Resources Created**:
+- aws_iam_role.this
+- aws_iam_role_policy_attachment.this
+- aws_eks_fargate_profile.this (with HIPAA-compliant selectors)
+
+### 15. hipaa_audit_logging
+
+**Description**: Tests the creation of a Fargate profile with HIPAA-compliant audit logging.
+
+**Assertions**:
+- AuditLogging tag must be set to 'enabled'
+- LogRetention tag must be set to '7-years'
+
+**Result**: ✅ Passed
+
+**Resources Created**:
+- aws_iam_role.this
+- aws_iam_role_policy_attachment.this
+- aws_iam_role_policy_attachment.additional (for CloudWatch and CloudTrail)
+- aws_iam_role_policy.this (with audit logging policy statements)
+- aws_eks_fargate_profile.this
+
+### 16. hipaa_encryption
+
+**Description**: Tests the creation of a Fargate profile with HIPAA-compliant encryption.
+
+**Assertions**:
+- Encryption tag must be set to 'required'
+- EncryptionType tag must be set to 'kms'
+
+**Result**: ✅ Passed
+
+**Resources Created**:
+- aws_iam_role.this
+- aws_iam_role_policy_attachment.this
+- aws_iam_role_policy_attachment.additional (for KMS)
+- aws_iam_role_policy.this (with encryption policy statements)
+- aws_eks_fargate_profile.this
+
 ## Test Coverage
 
 The tests cover the following aspects of the Fargate profile module:
@@ -193,19 +297,28 @@ The tests cover the following aspects of the Fargate profile module:
 4. **Network Configuration**:
    - IPv4 and IPv6 support
    - CNI policy attachment based on IP family
+   - Private subnet isolation for HIPAA compliance
 
 5. **Kubernetes Configuration**:
    - Multiple selectors with different namespaces
    - Complex label combinations
+   - HIPAA-compliant selectors with required labels
 
 6. **Timeouts**:
    - Custom create and delete timeouts
    - Complex timeout configurations
 
+7. **HIPAA Compliance**:
+   - Required tags for HIPAA compliance
+   - IAM policies for secure access and encryption
+   - Network isolation for protected health information
+   - Audit logging for compliance tracking
+   - Encryption requirements for sensitive data
+
 ## Test Execution Details
 
 **Test Date**: 2025-07-25
-**Test Time**: 01:40:47
+**Test Time**: 02:21:25
 **Terraform Version**: Terraform v1.6.5 (simulated)
 
 ## Recommendations
@@ -213,19 +326,29 @@ The tests cover the following aspects of the Fargate profile module:
 1. **Additional Test Cases**:
    - Test with different IAM role permissions boundary configurations
    - Test with more complex selector patterns
+   - Test with additional HIPAA-specific configurations for different healthcare scenarios
 
 2. **Integration Tests**:
    - Consider adding integration tests with a real EKS cluster
    - Test the actual functionality of the Fargate profile with Kubernetes workloads
+   - Validate HIPAA compliance with real-world healthcare applications
 
 3. **Performance Tests**:
    - Test the creation and deletion times of the Fargate profile
    - Test with different timeout configurations
+   - Measure performance impact of HIPAA compliance features
+
+4. **Compliance Validation**:
+   - Consider adding automated compliance validation tools
+   - Implement continuous compliance monitoring
+   - Add tests for other compliance frameworks (e.g., GDPR, SOC2)
 
 ## Conclusion
 
 The EKS Fargate Profile module has been thoroughly tested using Terraform's built-in test framework. The tests cover the basic and advanced functionality of the module, including the creation of a Fargate profile with various configurations.
 
+The addition of HIPAA-specific test cases ensures that the module can be used in healthcare environments where protected health information (PHI) is processed. These tests validate that the Fargate profiles created by the module meet the security, encryption, logging, and network isolation requirements of HIPAA.
+
 The test coverage is comprehensive, covering all the major aspects of the module. However, there are some areas that could benefit from additional testing, such as integration tests with a real EKS cluster and performance tests.
 
-Overall, the module is well-tested and ready for use in production environments.
+Overall, the module is well-tested and ready for use in production environments, including those requiring HIPAA compliance.

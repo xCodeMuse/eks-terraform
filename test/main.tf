@@ -1,186 +1,175 @@
-# Mock module for EKS cluster
-# This module simulates the behavior of the real EKS module without creating actual AWS resources
-
 provider "aws" {
-  region                      = var.region
-  skip_credentials_validation = true
-  skip_metadata_api_check     = true
-  skip_requesting_account_id  = true
-  skip_region_validation      = true
-  
-  # Mock endpoints
-  endpoints {
-    ec2            = "http://localhost:4566"
-    eks            = "http://localhost:4566"
-    iam            = "http://localhost:4566"
-    kms            = "http://localhost:4566"
-    cloudwatch     = "http://localhost:4566"
-    secretsmanager = "http://localhost:4566"
-    sts            = "http://localhost:4566"
-  }
-  
-  # Mock account ID and partition
-  access_key = "mock_access_key"
-  secret_key = "mock_secret_key"
-}
-
-# Mock data for TLS certificate
-provider "tls" {
-  # No specific configuration needed for mocking
-}
-
-# Mock time provider
-provider "time" {
-  # No specific configuration needed for mocking
+  region = var.region
 }
 
 locals {
-  mock_cluster_id                 = "mock-eks-${var.cluster_name}"
-  mock_cluster_arn                = "arn:aws:eks:${var.region}:123456789012:cluster/${var.cluster_name}"
-  mock_cluster_endpoint           = "https://${var.cluster_name}.eks.${var.region}.amazonaws.com"
-  mock_cluster_auth_base64        = "bW9jay1jbHVzdGVyLWF1dGgtZGF0YQ==" # Base64 encoded "mock-cluster-auth-data"
-  mock_cluster_security_group_id  = "sg-0123456789abcdef0"
-  mock_node_security_group_id     = "sg-0123456789abcdef1"
-  mock_oidc_provider_arn          = "arn:aws:iam::123456789012:oidc-provider/oidc.eks.${var.region}.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE"
-  mock_kms_key_arn                = var.create_kms_key ? "arn:aws:kms:${var.region}:123456789012:key/1234abcd-12ab-34cd-56ef-1234567890ab" : null
-  mock_cluster_primary_sg_id      = "sg-0123456789abcdef2"
-  
-  # Mock node group values
-  mock_node_group_arn             = "arn:aws:eks:${var.region}:123456789012:nodegroup/${var.cluster_name}/default/1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p"
-  mock_node_group_id              = "${var.cluster_name}:default"
-  mock_node_group_status          = "ACTIVE"
-  mock_node_group_asg_name        = "eks-${var.cluster_name}-default-1a2b3c4d-5e6f"
-  
-  # Determine if node groups are enabled
-  has_node_groups = length(try(var.eks_managed_node_groups, {})) > 0
-}
+  name            = "eks-test-${random_string.suffix.result}"
+  cluster_version = "1.29"
 
-# Mock resource to simulate the EKS cluster
-resource "null_resource" "mock_eks_cluster" {
-  triggers = {
-    cluster_name = var.cluster_name
-    cluster_version = var.cluster_version
-    vpc_id = var.vpc_id
-    subnet_ids = join(",", var.subnet_ids)
-    cluster_endpoint_private_access = var.cluster_endpoint_private_access
-    cluster_endpoint_public_access = var.cluster_endpoint_public_access
-    enable_irsa = var.enable_irsa
-    create_kms_key = var.create_kms_key
+  vpc_cidr = "10.0.0.0/16"
+  azs      = slice(data.aws_availability_zones.available.names, 0, 3)
+
+  tags = {
+    Example    = local.name
+    GithubRepo = "terraform-aws-eks"
+    GithubOrg  = "terraform-aws-modules"
+    Terraform  = "true"
+    Environment = "test"
   }
 }
 
-# Mock resource to simulate node groups if they are defined
-resource "null_resource" "mock_eks_node_groups" {
-  count = local.has_node_groups ? 1 : 0
-  
-  triggers = {
-    cluster_name = var.cluster_name
-    node_groups = jsonencode(var.eks_managed_node_groups)
+################################################################################
+# Supporting Resources
+################################################################################
+
+resource "random_string" "suffix" {
+  length  = 8
+  special = false
+}
+
+data "aws_availability_zones" "available" {}
+
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "~> 5.0"
+
+  name = local.name
+  cidr = local.vpc_cidr
+
+  azs             = local.azs
+  private_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 4, k)]
+  public_subnets  = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 48)]
+
+  enable_nat_gateway = true
+  single_nat_gateway = true
+
+  public_subnet_tags = {
+    "kubernetes.io/role/elb" = 1
   }
-  
-  depends_on = [null_resource.mock_eks_cluster]
+
+  private_subnet_tags = {
+    "kubernetes.io/role/internal-elb" = 1
+  }
+
+  tags = local.tags
 }
 
-# Outputs that match the real module
-output "cluster_arn" {
-  description = "The Amazon Resource Name (ARN) of the cluster"
-  value       = local.mock_cluster_arn
-}
+################################################################################
+# EKS Module
+################################################################################
 
-output "cluster_certificate_authority_data" {
-  description = "Base64 encoded certificate data required to communicate with the cluster"
-  value       = local.mock_cluster_auth_base64
-}
+module "eks" {
+  source = "../"
 
-output "cluster_endpoint" {
-  description = "Endpoint for your Kubernetes API server"
-  value       = local.mock_cluster_endpoint
-}
+  cluster_name                   = local.name
+  cluster_version                = local.cluster_version
+  cluster_endpoint_public_access = true
 
-output "cluster_id" {
-  description = "The ID of the EKS cluster"
-  value       = local.mock_cluster_id
-}
+  # Give the Terraform identity admin access to the cluster
+  # which will allow resources to be deployed into the cluster
+  enable_cluster_creator_admin_permissions = true
 
-output "cluster_name" {
-  description = "The name of the EKS cluster"
-  value       = var.cluster_name
-}
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
 
-output "cluster_oidc_issuer_url" {
-  description = "The URL on the EKS cluster for the OpenID Connect identity provider"
-  value       = "https://oidc.eks.${var.region}.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE"
-}
-
-output "cluster_version" {
-  description = "The Kubernetes version for the cluster"
-  value       = var.cluster_version
-}
-
-output "cluster_status" {
-  description = "Status of the EKS cluster"
-  value       = "ACTIVE"
-}
-
-output "cluster_primary_security_group_id" {
-  description = "Cluster security group that was created by Amazon EKS for the cluster"
-  value       = local.mock_cluster_primary_sg_id
-}
-
-output "cluster_security_group_id" {
-  description = "ID of the cluster security group"
-  value       = local.mock_cluster_security_group_id
-}
-
-output "node_security_group_id" {
-  description = "ID of the node shared security group"
-  value       = local.mock_node_security_group_id
-}
-
-output "oidc_provider" {
-  description = "The OpenID Connect identity provider"
-  value       = "oidc.eks.${var.region}.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE"
-}
-
-output "oidc_provider_arn" {
-  description = "The ARN of the OIDC Provider if `enable_irsa = true`"
-  value       = var.enable_irsa ? local.mock_oidc_provider_arn : null
-}
-
-output "kms_key_arn" {
-  description = "The Amazon Resource Name (ARN) of the key"
-  value       = local.mock_kms_key_arn
-}
-
-output "eks_managed_node_groups" {
-  description = "Map of attribute maps for all EKS managed node groups created"
-  value       = local.has_node_groups ? {
-    for key, value in var.eks_managed_node_groups : key => {
-      node_group_arn  = local.mock_node_group_arn
-      node_group_id   = local.mock_node_group_id
-      node_group_resources = [{
-        autoscaling_groups = [{
-          name = local.mock_node_group_asg_name
-        }]
-      }]
-      node_group_status = local.mock_node_group_status
-      node_group_labels = try(value.labels, {})
-      node_group_taints = try(value.taints, [])
+  # Extend cluster security group rules
+  cluster_security_group_additional_rules = {
+    ingress_from_testing = {
+      description = "Allow inbound from testing environment"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "ingress"
+      cidr_blocks = ["10.0.0.0/8"]
     }
-  } : {}
+  }
+
+  # Extend node-to-node security group rules
+  node_security_group_additional_rules = {
+    ingress_self_all = {
+      description = "Node to node all ports/protocols"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "ingress"
+      self        = true
+    }
+  }
+
+  eks_managed_node_groups = {
+    # Default node group - as provided by AWS EKS
+    default_node_group = {
+      # By default, the module creates a launch template to ensure tags are propagated to instances, etc.
+      # However, this causes the node group to be recreated anytime there are changes to the launch template
+      # To avoid this, we can use the default launch template provided by the AWS EKS managed node group service
+      use_custom_launch_template = false
+
+      disk_size = 50
+
+      # Remote access cannot be specified with a launch template
+      remote_access = {
+        ec2_ssh_key               = var.ec2_ssh_key_name
+        source_security_group_ids = [module.vpc.default_security_group_id]
+      }
+    }
+
+    # Custom node group with Spot instances
+    spot = {
+      name = "spot"
+
+      min_size     = 1
+      max_size     = 3
+      desired_size = 2
+
+      instance_types = ["t3.medium", "t3a.medium"]
+      capacity_type  = "SPOT"
+
+      bootstrap_extra_args = "--kubelet-extra-args '--node-labels=node.kubernetes.io/lifecycle=spot'"
+
+      update_config = {
+        max_unavailable_percentage = 50
+      }
+    }
+  }
+
+  # Fargate Profile(s)
+  fargate_profiles = {
+    default = {
+      name = "default"
+      selectors = [
+        {
+          namespace = "default"
+        }
+      ]
+    }
+  }
+
+  # Enable EKS Addons
+  cluster_addons = {
+    coredns = {
+      most_recent = true
+    }
+    kube-proxy = {
+      most_recent = true
+    }
+    vpc-cni = {
+      most_recent = true
+    }
+  }
+
+  tags = local.tags
 }
 
-output "eks_managed_node_groups_autoscaling_group_names" {
-  description = "List of the autoscaling group names created by EKS managed node groups"
-  value       = local.has_node_groups ? [local.mock_node_group_asg_name] : []
-}
+################################################################################
+# Supporting Resources
+################################################################################
 
-output "self_managed_node_groups" {
-  description = "Map of attribute maps for all self managed node groups created"
-  value       = {}
-}
+# Create a key pair for SSH access to the nodes
+resource "aws_key_pair" "this" {
+  count = var.ec2_ssh_key_name == "" ? 1 : 0
 
-output "fargate_profiles" {
-  description = "Map of attribute maps for all EKS Fargate Profiles created"
-  value       = {}
+  key_name_prefix = local.name
+  public_key      = var.ec2_ssh_public_key
+
+  tags = local.tags
 }

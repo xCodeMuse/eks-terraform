@@ -1,119 +1,159 @@
-# Basic test for EKS root module
-
-# Define variables for the test
 variables {
-  cluster_name    = "test-eks-cluster"
-  cluster_version = "1.28"
-  region          = "us-west-2"
-  
-  # VPC and subnet IDs will be created by the fixture
-  vpc_id     = "vpc-0123456789abcdef0"
-  subnet_ids = ["subnet-0123456789abcdef1", "subnet-0123456789abcdef2"]
-  
-  # Enable IRSA
-  enable_irsa = true
-  
-  # Enable KMS encryption
-  create_kms_key = true
-  
-  # Set endpoint access
-  cluster_endpoint_private_access = true
-  cluster_endpoint_public_access  = true
-  
-  # Add tags
-  tags = {
-    Environment = "test"
-    Terraform   = "true"
+  region           = "us-west-2"
+  ec2_ssh_key_name = ""
+}
+
+provider "aws" {
+  region = var.region
+}
+
+run "prepare_vpc" {
+  module {
+    source = "./test"
   }
 }
 
-# Test basic cluster creation
-run "create_basic_cluster" {
-  command = plan
-  
-  # Basic assertions
-  assert {
-    condition     = var.cluster_name != ""
-    error_message = "Cluster name must be provided"
-  }
-  
-  assert {
-    condition     = var.cluster_version != ""
-    error_message = "Cluster version must be provided"
-  }
-  
-  assert {
-    condition     = var.enable_irsa == true
-    error_message = "IRSA should be enabled for the test"
-  }
-}
-
-# Test private cluster configuration
-run "private_cluster" {
-  command = plan
-  
-  # Override variables for this test
+# Validate basic cluster creation and configuration
+run "validate_cluster_creation" {
   variables {
-    cluster_endpoint_private_access = true
-    cluster_endpoint_public_access  = false
+    region           = run.prepare_vpc.region
+    ec2_ssh_key_name = run.prepare_vpc.ec2_ssh_key_name
   }
-  
-  assert {
-    condition     = var.cluster_endpoint_private_access == true
-    error_message = "Private endpoint access should be enabled"
+
+  module {
+    source = "./test"
   }
-  
+
   assert {
-    condition     = var.cluster_endpoint_public_access == false
-    error_message = "Public endpoint access should be disabled"
+    condition     = module.eks.cluster_name != ""
+    error_message = "Cluster name should not be empty"
+  }
+
+  assert {
+    condition     = module.eks.cluster_arn != ""
+    error_message = "Cluster ARN should not be empty"
+  }
+
+  assert {
+    condition     = module.eks.cluster_endpoint != ""
+    error_message = "Cluster endpoint should not be empty"
+  }
+
+  assert {
+    condition     = module.eks.cluster_version == "1.29"
+    error_message = "Cluster version should be 1.29"
+  }
+
+  assert {
+    condition     = module.eks.cluster_status == "ACTIVE"
+    error_message = "Cluster status should be ACTIVE"
+  }
+
+  assert {
+    condition     = module.eks.cluster_certificate_authority_data != ""
+    error_message = "Cluster certificate authority data should not be empty"
   }
 }
 
-# Test KMS encryption
-run "kms_encryption" {
-  command = plan
-  
-  # Override variables for this test
+# Validate node groups
+run "validate_node_groups" {
   variables {
-    create_kms_key = true
+    region           = run.prepare_vpc.region
+    ec2_ssh_key_name = run.prepare_vpc.ec2_ssh_key_name
   }
-  
+
+  module {
+    source = "./test"
+  }
+
   assert {
-    condition     = var.create_kms_key == true
-    error_message = "KMS key creation should be enabled"
+    condition     = length(module.eks.eks_managed_node_groups) == 2
+    error_message = "Should have 2 EKS managed node groups"
+  }
+
+  assert {
+    condition     = contains(keys(module.eks.eks_managed_node_groups), "default_node_group")
+    error_message = "Should have a default_node_group"
+  }
+
+  assert {
+    condition     = contains(keys(module.eks.eks_managed_node_groups), "spot")
+    error_message = "Should have a spot node group"
+  }
+
+  assert {
+    condition     = length(module.eks.eks_managed_node_groups_autoscaling_group_names) > 0
+    error_message = "Should have at least one autoscaling group"
   }
 }
 
-# Test with node groups
-run "with_node_groups" {
-  command = plan
-  
-  # Override variables for this test
+# Validate Fargate profiles
+run "validate_fargate_profiles" {
   variables {
-    eks_managed_node_groups = {
-      default = {
-        name         = "default-node-group"
-        min_size     = 1
-        max_size     = 3
-        desired_size = 2
-        instance_types = ["t3.medium"]
-        capacity_type  = "ON_DEMAND"
-      }
-    }
+    region           = run.prepare_vpc.region
+    ec2_ssh_key_name = run.prepare_vpc.ec2_ssh_key_name
   }
-  
-  assert {
-    condition     = length(var.eks_managed_node_groups) > 0
-    error_message = "Node groups should be defined"
+
+  module {
+    source = "./test"
   }
-  
+
   assert {
-    condition     = lookup(var.eks_managed_node_groups.default, "min_size", 0) >= 1
-    error_message = "Node group minimum size should be at least 1"
+    condition     = length(module.eks.fargate_profiles) == 1
+    error_message = "Should have 1 Fargate profile"
   }
-  
+
   assert {
-    condition     = lookup(var.eks_managed_node_groups.default, "max_size", 0) >= lookup(var.eks_managed_node_groups.default, "min_size", 0)
-    error_message = "Node group maximum size should be greater than or equal to minimum size"
+    condition     = contains(keys(module.eks.fargate_profiles), "default")
+    error_message = "Should have a default Fargate profile"
+  }
+}
+
+# Validate OIDC provider for IRSA
+run "validate_oidc_provider" {
+  variables {
+    region           = run.prepare_vpc.region
+    ec2_ssh_key_name = run.prepare_vpc.ec2_ssh_key_name
+  }
+
+  module {
+    source = "./test"
+  }
+
+  assert {
+    condition     = module.eks.oidc_provider != ""
+    error_message = "OIDC provider should not be empty"
+  }
+
+  assert {
+    condition     = module.eks.oidc_provider_arn != ""
+    error_message = "OIDC provider ARN should not be empty"
+  }
+}
+
+# Validate security groups
+run "validate_security_groups" {
+  variables {
+    region           = run.prepare_vpc.region
+    ec2_ssh_key_name = run.prepare_vpc.ec2_ssh_key_name
+  }
+
+  module {
+    source = "./test"
+  }
+
+  assert {
+    condition     = module.eks.cluster_security_group_id != ""
+    error_message = "Cluster security group ID should not be empty"
+  }
+
+  assert {
+    condition     = module.eks.node_security_group_id != ""
+    error_message = "Node security group ID should not be empty"
+  }
+
+  assert {
+    condition     = module.eks.cluster_primary_security_group_id != ""
+    error_message = "Cluster primary security group ID should not be empty"
   }
 }

@@ -11,21 +11,43 @@ The AWS EKS module is a comprehensive solution for creating and managing Elastic
 - Self-Managed Node Groups
 - Karpenter (for autoscaling)
 
-This test strategy aims to validate both the individual functionality of each component and their integration as a complete system.
+This test strategy aims to validate both the individual functionality of each component and their integration as a complete system. It includes both unit tests and functional tests to provide comprehensive validation of the module.
 
 ## 2. Testing Framework
 
 ### Primary Testing Tools
 
-1. **Terraform Native Testing (tftest)** - For basic validation of module configurations and outputs
-2. **Terratest (Go)** - For comprehensive end-to-end testing of the deployed infrastructure
-3. **AWS CLI** - For validating the actual resources created in AWS
+1. **Terraform Native Testing (tftest)** - For both unit testing (plan) and functional testing (apply) of module configurations and outputs
+2. **Terratest (Go)** - For comprehensive end-to-end functional testing of the deployed infrastructure
+3. **AWS CLI** - For validating the actual resources created in AWS during functional tests
+
+### Test Types
+
+#### Unit Tests
+Unit tests validate the module configuration without creating actual AWS resources:
+- Use the `plan` command instead of `apply`
+- Mock the AWS provider
+- Validate configuration syntax and structure
+- Check resource definitions, inputs, and outputs
+- Run quickly and don't incur AWS costs
+
+#### Functional Tests
+Functional tests create actual AWS resources and validate their behavior:
+- Use the `apply` command to create resources
+- Validate that resources are created correctly
+- Test interactions between components
+- Verify real-world behavior
+- Incur AWS costs and take longer to run
 
 ### Rationale for Tool Selection
 
-- **Terraform Native Testing**: Provides fast, lightweight validation of module configurations without requiring actual resource creation
-- **Terratest**: Enables comprehensive testing of the actual deployed resources and their behavior
-- **AWS CLI**: Allows direct verification of resources and their configurations in AWS
+- **Terraform Native Testing**:
+  - For unit tests: Provides fast, lightweight validation of module configurations without requiring actual resource creation
+  - For functional tests: Enables validation of actual resource creation and configuration
+
+- **Terratest**: Enables comprehensive functional testing of the actual deployed resources and their behavior
+
+- **AWS CLI**: Allows direct verification of resources and their configurations in AWS during functional testing
 
 ## 3. Module Under Test
 
@@ -289,7 +311,49 @@ module "eks" {
 
 ## 9. Test Scenarios
 
-### Basic Functionality Tests
+### Unit Tests
+
+1. **Module Configuration**
+   - Validate the basic module structure and dependencies
+   - Verify resource definitions are correct
+   - Check that variables are properly defined and validated
+   - Ensure outputs are correctly defined
+
+2. **Cluster Configuration**
+   - Verify the EKS cluster configuration parameters
+   - Check cluster version is set correctly
+   - Validate cluster endpoint configuration
+   - Verify cluster IAM role configuration
+
+3. **Node Group Configuration**
+   - Check EKS managed node group configurations
+   - Verify node group IAM roles
+   - Validate node group launch templates
+   - Check node group scaling configuration
+
+4. **Fargate Profile Configuration**
+   - Validate Fargate profile configurations
+   - Check namespace and label selectors
+   - Verify Fargate profile IAM role
+
+5. **Add-on Configuration**
+   - Verify EKS add-on configurations
+   - Check add-on versions
+   - Validate add-on configuration parameters
+
+6. **Security Group Configuration**
+   - Check security group configurations
+   - Verify security group rules
+   - Validate security group associations
+
+7. **IAM Role Configuration**
+   - Validate IAM role configurations
+   - Check IAM policies
+   - Verify trust relationships
+
+### Functional Tests
+
+#### Basic Functionality Tests
 
 1. **Cluster Creation**
    - Create a basic EKS cluster with default settings

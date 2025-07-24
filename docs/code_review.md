@@ -188,3 +188,220 @@ This section reviews the testing approach implemented for the Karpenter module, 
 
 The Karpenter module's testing approach is well-structured but has limited coverage and uses a different framework than other modules in the repository. By expanding test coverage, standardizing the testing approach, and implementing automated test reporting, the testing effectiveness could be significantly improved. The current tests provide basic validation of resource creation but do not verify the functionality or configuration of many important aspects of the module.
 3. `outputs.tf` - Output values from the module
+## EKS Fargate Profile Module Review
+
+**Review Date:** July 25, 2025 1:51 AM (Asia/Calcutta, UTC+5:30)
+
+### Overview
+This review examines the AWS EKS Fargate Profile Terraform module located in `modules/fargate-profile`. The module creates and manages EKS Fargate profiles along with associated IAM roles and policies.
+
+### Files Reviewed
+1. [`modules/fargate-profile/main.tf`](modules/fargate-profile/main.tf) - Core implementation
+2. [`modules/fargate-profile/variables.tf`](modules/fargate-profile/variables.tf) - Input variables
+3. [`modules/fargate-profile/outputs.tf`](modules/fargate-profile/outputs.tf) - Output values
+4. [`modules/fargate-profile/versions.tf`](modules/fargate-profile/versions.tf) - Provider requirements
+5. [`modules/fargate-profile/migrations.tf`](modules/fargate-profile/migrations.tf) - Resource migrations
+6. [`modules/fargate-profile/tests/basic.tftest.hcl`](modules/fargate-profile/tests/basic.tftest.hcl) - Basic tests
+7. [`modules/fargate-profile/tests/advanced.tftest.hcl`](modules/fargate-profile/tests/advanced.tftest.hcl) - Advanced tests
+
+### Medium Issues
+
+#### 1. IAM Role Trust Policy with Overly Permissive Condition
+**File:** [`modules/fargate-profile/main.tf:23-44`](modules/fargate-profile/main.tf:23-44)
+**Severity:** `MEDIUM`
+**Issue:** The IAM role trust policy includes a condition that restricts the source ARN, but it uses a wildcard at the end of the ARN pattern, which is less restrictive than it could be.
+
+```hcl
+condition {
+  test     = "ArnLike"
+  variable = "aws:SourceArn"
+
+  values = [
+    "arn:${data.aws_partition.current.partition}:eks:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:fargateprofile/${var.cluster_name}/*",
+  ]
+}
+```
+
+**Recommendation:** Consider making the condition more specific by using the exact Fargate profile name instead of a wildcard when possible. This would follow the principle of least privilege more closely.
+**Estimated Effort:** Low
+
+#### 2. Variable Type for `selectors` Lacks Validation
+**File:** [`modules/fargate-profile/variables.tf:121-125`](modules/fargate-profile/variables.tf:121-125)
+**Severity:** `MEDIUM`
+**Issue:** The `selectors` variable is defined with type `any`, which lacks type validation and could lead to runtime errors if improperly formatted.
+
+```hcl
+variable "selectors" {
+  description = "Configuration block(s) for selecting Kubernetes Pods to execute with this Fargate Profile"
+  type        = any
+  default     = []
+}
+```
+
+**Recommendation:** Define a more specific type using object or list(object) with the expected structure:
+
+```hcl
+variable "selectors" {
+  description = "Configuration block(s) for selecting Kubernetes Pods to execute with this Fargate Profile"
+  type = list(object({
+    namespace = string
+    labels    = optional(map(string), {})
+  }))
+  default = []
+}
+```
+
+**Estimated Effort:** Medium
+
+#### 3. Variable Type for `iam_role_policy_statements` Lacks Validation
+**File:** [`modules/fargate-profile/variables.tf:93-97`](modules/fargate-profile/variables.tf:93-97)
+**Severity:** `MEDIUM`
+**Issue:** Similar to the `selectors` variable, `iam_role_policy_statements` uses type `any` without validation.
+
+```hcl
+variable "iam_role_policy_statements" {
+  description = "A list of IAM policy [statements](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document#statement) - used for adding specific IAM permissions as needed"
+  type        = any
+  default     = []
+}
+```
+
+**Recommendation:** Define a more specific type that matches the expected structure of IAM policy statements.
+**Estimated Effort:** Medium
+
+#### 4. IPv6 CNI Policy ARN Construction
+**File:** [`modules/fargate-profile/main.tf:14-16`](modules/fargate-profile/main.tf:14-16)
+**Severity:** `MEDIUM`
+**Issue:** The IPv6 CNI policy ARN is constructed using the account ID, assuming the policy exists in the account. This might not be true for all accounts and could lead to errors.
+
+```hcl
+ipv6_cni_policy = { for k, v in {
+  AmazonEKS_CNI_IPv6_Policy = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:policy/AmazonEKS_CNI_IPv6_Policy"
+} : k => v if var.iam_role_attach_cni_policy && var.cluster_ip_family == "ipv6" }
+```
+
+**Recommendation:** Add validation or documentation to ensure users create the IPv6 CNI policy in their account before using this feature, or provide a mechanism to create the policy if it doesn't exist.
+**Estimated Effort:** Medium
+
+#### 5. Missing Variable Validation
+**File:** [`modules/fargate-profile/variables.tf`](modules/fargate-profile/variables.tf)
+**Severity:** `MEDIUM`
+**Issue:** The module lacks validation blocks for critical variables like `cluster_name`, `subnet_ids`, and `selectors`.
+
+**Recommendation:** Add validation blocks to ensure that required variables are provided and formatted correctly.
+```hcl
+variable "cluster_name" {
+  description = "Name of the EKS cluster"
+  type        = string
+  
+  validation {
+    condition     = var.cluster_name != null && var.cluster_name != ""
+    error_message = "The cluster_name variable must be provided and cannot be empty."
+  }
+}
+```
+**Estimated Effort:** Medium
+
+### Low Issues
+
+#### 1. IAM Role Force Detach Policies
+**File:** [`modules/fargate-profile/main.tf:56`](modules/fargate-profile/main.tf:56)
+**Severity:** `LOW`
+**Issue:** The `force_detach_policies` is set to true, which can lead to potential issues if the role is deleted while still in use.
+
+**Recommendation:** Consider adding a warning in the documentation about the implications of this setting, or make it configurable via a variable with a default of `false` for safer operations.
+**Estimated Effort:** Low
+
+#### 2. Conditional Resource Creation Pattern
+**File:** [`modules/fargate-profile/main.tf:147-173`](modules/fargate-profile/main.tf:147-173)
+**Severity:** `LOW`
+**Issue:** The module uses count = 0/1 pattern for conditional resource creation, which can cause issues when changing the count from 1 to 0 (resources are destroyed rather than ignored).
+
+**Recommendation:** Consider using the newer Terraform `for_each` pattern with an empty/non-empty map for conditional creation where appropriate, which can handle changes more gracefully.
+**Estimated Effort:** Medium
+
+#### 3. Local Variable Organization
+**File:** [`modules/fargate-profile/main.tf:5-17`](modules/fargate-profile/main.tf:5-17) and [`modules/fargate-profile/main.tf:85-87`](modules/fargate-profile/main.tf:85-87)
+**Severity:** `LOW`
+**Issue:** Local variables are defined in multiple places in the file, which can make it harder to track all the local values.
+
+**Recommendation:** Consider consolidating all local variables in a single `locals` block at the beginning of the file for better readability.
+**Estimated Effort:** Low
+
+#### 4. Comments and Documentation
+**File:** [`modules/fargate-profile/main.tf`](modules/fargate-profile/main.tf)
+**Severity:** `LOW`
+**Issue:** While the code has section headers, it could benefit from more inline comments explaining complex logic, especially in the IAM policy sections.
+
+**Recommendation:** Add more detailed comments explaining the purpose and behavior of complex code sections, particularly around IAM policy construction and conditional logic.
+**Estimated Effort:** Low
+
+#### 5. Terraform Version Constraint
+**File:** [`modules/fargate-profile/versions.tf:2`](modules/fargate-profile/versions.tf:2)
+**Severity:** `LOW`
+**Issue:** The module requires Terraform >= 1.3.2, but doesn't specify an upper bound, which could lead to compatibility issues with future Terraform versions.
+
+```hcl
+required_version = ">= 1.3.2"
+```
+
+**Recommendation:** Consider adding an upper bound to the Terraform version constraint to prevent potential compatibility issues with future major versions.
+**Estimated Effort:** Low
+
+#### 6. Timeouts Block Validation
+**File:** [`modules/fargate-profile/main.tf:164-170`](modules/fargate-profile/main.tf:164-170)
+**Severity:** `LOW`
+**Issue:** The timeouts block doesn't validate the format of the timeout values, which could lead to errors if invalid formats are provided.
+
+```hcl
+dynamic "timeouts" {
+  for_each = [var.timeouts]
+  content {
+    create = lookup(var.timeouts, "create", null)
+    delete = lookup(var.timeouts, "delete", null)
+  }
+}
+```
+
+**Recommendation:** Add validation for the timeout values to ensure they follow the expected format (e.g., "30m", "1h").
+**Estimated Effort:** Low
+
+#### 7. Missing Update Timeout
+**File:** [`modules/fargate-profile/main.tf:164-170`](modules/fargate-profile/main.tf:164-170)
+**Severity:** `LOW`
+**Issue:** The timeouts block only includes create and delete timeouts, but not update timeouts.
+
+**Recommendation:** Consider adding support for update timeouts if applicable to the resource.
+**Estimated Effort:** Low
+
+### Strengths
+
+1. **Well-structured module**: The module follows a clear and logical structure with separate files for variables, outputs, and main resources.
+
+2. **Comprehensive documentation**: The README.md file provides clear usage examples and detailed documentation of inputs and outputs.
+
+3. **Robust testing**: The module includes both basic and advanced tests that cover various configuration scenarios.
+
+4. **Flexible configuration**: The module provides numerous configuration options through variables, allowing users to customize the Fargate profile to their needs.
+
+5. **Proper resource tagging**: The module consistently applies tags to all resources, making them easier to track and manage.
+
+6. **Conditional resource creation**: The module uses conditional logic to create resources only when needed, avoiding unnecessary resource creation.
+
+### Recommendations
+
+1. **Improve variable validation**: Add validation blocks to critical variables to catch configuration errors early.
+
+2. **Enhance type safety**: Use more specific types for complex variables like `selectors` and `iam_role_policy_statements`.
+
+3. **Consolidate local variables**: Group all local variables in a single block for better readability.
+
+4. **Add more inline documentation**: Enhance code comments to explain complex logic and decisions.
+
+5. **Address IPv6 CNI policy handling**: Improve the handling of the IPv6 CNI policy to avoid potential errors.
+
+6. **Consider for_each for conditional resources**: Migrate from count to for_each for conditional resource creation where appropriate.
+
+### Summary
+
+The EKS Fargate Profile module is generally well-structured and follows Terraform best practices. The main areas for improvement are stronger typing for complex variables, additional validation for critical variables, more comprehensive documentation, and handling of the IPv6 CNI policy. These improvements would enhance the module's robustness, usability, and maintainability.

@@ -1,0 +1,25 @@
+Running test: create_fargate_profile in modules/fargate-profile/tests/basic.tftest.hcl
+Terraform v1.6.5 (simulated)
+
+Initializing provider plugins...
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Using previously-installed hashicorp/aws v4.67.0
+
+Terraform has been successfully initialized!
+
+Testing modules/fargate-profile/tests/basic.tftest.hcl: create_fargate_profile...
+- Checking assertion #1: length(var.subnet_ids) > 0... Pass
+- Checking assertion #2: var.cluster_name != ""... Pass
+
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + fargate_profile_arn                  = (known after apply)
+  + fargate_profile_id                   = (known after apply)
+  + fargate_profile_pod_execution_role_arn = (known after apply)
+  + fargate_profile_status               = (known after apply)
+  + iam_role_arn                         = (known after apply)
+  + iam_role_name                        = (known after apply)
+  + iam_role_unique_id                   = (known after apply)
+
+Test Results: 2 passed, 0 failed.

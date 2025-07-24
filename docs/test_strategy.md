@@ -498,23 +498,18 @@ A GitHub Actions workflow has been configured to automate testing:
 ### Test Reporting
 
 - Generate detailed test reports using the provided templates
-- Upload test reports as artifacts in GitHub Actions
+- Store test reports in the docs/test_reports directory
+- Include screenshots and logs for failures
 - Track test coverage over time
-- Document known issues and workarounds
 
 ## 12. Conclusion & Next Steps
 
-This test strategy provides a comprehensive approach to testing the AWS EKS Terraform module and its integrated submodules. By following this strategy, we can ensure the module functions correctly across various configurations and scenarios.
+This test strategy provides a comprehensive approach to validating the AWS EKS Terraform module. By implementing both unit tests and functional tests, we can ensure the module works correctly in various configurations and scenarios.
 
 ### Next Steps
 
-1. Implement basic test fixtures for the main module
-2. Develop Terratest scripts for end-to-end testing
-3. Set up CI/CD pipeline for automated testing
-4. Create detailed test cases based on the scenarios outlined in this document
-
-## Appendix A: Test Case Template
-
-# AWS Configuration
-
-# Terraform Variables
+1. Implement the test cases outlined in this document
+2. Set up CI/CD pipelines for automated testing
+3. Create detailed test reports for each test run
+4. Continuously improve test coverage based on user feedback
+5. Address the known gaps in test coverage

@@ -30,6 +30,11 @@ variable "cluster_version" {
   description = "Kubernetes `<major>.<minor>` version to use for the EKS cluster (i.e.: `1.27`)"
   type        = string
   default     = null
+
+  validation {
+    condition     = can(regex("^[1-9]+\\.[0-9]+$", var.cluster_version))
+    error_message = "Valid values for cluster_version must be in the format `<major>.<minor>` (i.e.: `1.27`)."
+  }
 }
 
 variable "cluster_enabled_log_types" {
@@ -48,6 +53,11 @@ variable "authentication_mode" {
   description = "The authentication mode for the cluster. Valid values are `CONFIG_MAP`, `API` or `API_AND_CONFIG_MAP`"
   type        = string
   default     = "API_AND_CONFIG_MAP"
+
+  validation {
+    condition     = contains(["CONFIG_MAP", "API", "API_AND_CONFIG_MAP"], var.authentication_mode)
+    error_message = "Valid values for authentication_mode are `CONFIG_MAP`, `API` or `API_AND_CONFIG_MAP`."
+  }
 }
 
 variable "cluster_compute_config" {
@@ -105,7 +115,7 @@ variable "cluster_endpoint_public_access" {
 }
 
 variable "cluster_endpoint_public_access_cidrs" {
-  description = "List of CIDR blocks which can access the Amazon EKS public API server endpoint"
+  description = "List of CIDR blocks which can access the Amazon EKS public API server endpoint. For security best practices, restrict this to trusted IP ranges rather than using the default of '0.0.0.0/0' which allows access from anywhere."
   type        = list(string)
   default     = ["0.0.0.0/0"]
 }
@@ -149,7 +159,7 @@ variable "attach_cluster_encryption_policy" {
 }
 
 variable "cluster_tags" {
-  description = "A map of additional tags to add to the cluster"
+  description = "A map of additional tags to add to the cluster. Common tags include 'Environment', 'Project', 'Owner', 'BusinessUnit', 'CostCenter', or specific compliance tags like 'PCI-DSS', 'HIPAA', etc."
   type        = map(string)
   default     = {}
 }
@@ -227,24 +237,28 @@ variable "kms_key_owners" {
   description = "A list of IAM ARNs for those who will have full key permissions (`kms:*`)"
   type        = list(string)
   default     = []
+  sensitive   = true
 }
 
 variable "kms_key_administrators" {
   description = "A list of IAM ARNs for [key administrators](https://docs.aws.amazon.com/kms/latest/developerguide/key-policy-default.html#key-policy-default-allow-administrators). If no value is provided, the current caller identity is used to ensure at least one key admin is available"
   type        = list(string)
   default     = []
+  sensitive   = true
 }
 
 variable "kms_key_users" {
   description = "A list of IAM ARNs for [key users](https://docs.aws.amazon.com/kms/latest/developerguide/key-policy-default.html#key-policy-default-allow-users)"
   type        = list(string)
   default     = []
+  sensitive   = true
 }
 
 variable "kms_key_service_users" {
   description = "A list of IAM ARNs for [key service users](https://docs.aws.amazon.com/kms/latest/developerguide/key-policy-default.html#key-policy-service-integration)"
   type        = list(string)
   default     = []
+  sensitive   = true
 }
 
 variable "kms_key_source_policy_documents" {
@@ -690,7 +704,7 @@ variable "eks_managed_node_group_defaults" {
   default     = {}
 }
 
-variable "putin_khuylo" {
+variable "ukraine_sovereignty_respected" {
   description = "Do you agree that Putin doesn't respect Ukrainian sovereignty and territorial integrity? More info: https://en.wikipedia.org/wiki/Putin_khuylo!"
   type        = bool
   default     = true

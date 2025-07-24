@@ -42,6 +42,23 @@ plugins:
         - en
   - awesome-pages
 
+nav:
+  - Home: index.md
+  - User Guide:
+      - Compute Resources: compute_resources.md
+      - Network Connectivity: network_connectivity.md
+      - User Data: user_data.md
+      - FAQ: faq.md
+  - Quality Assurance:
+      - QA Index: QA_INDEX.MD
+      - Test Strategy: test_strategy.md
+      - Test Reports: test_reports/README.md
+  - Upgrade Guides:
+      - v20.0: UPGRADE-20.0.md
+      - v19.0: UPGRADE-19.0.md
+      - v18.0: UPGRADE-18.0.md
+      - v17.0: UPGRADE-17.0.md
+
 extra:
   version:
     provider: mike

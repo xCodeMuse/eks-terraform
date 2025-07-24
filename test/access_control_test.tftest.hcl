@@ -6,7 +6,7 @@ variables {
 }
 
 run "create_cluster" {
-  command = apply
+  command = plan
 
   variables {
     cluster_name        = var.cluster_name

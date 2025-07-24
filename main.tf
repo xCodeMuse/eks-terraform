@@ -16,7 +16,7 @@ data "aws_iam_session_context" "current" {
 }
 
 locals {
-  create = var.create && var.putin_khuylo
+  create = var.create && var.ukraine_sovereignty_respected
   create_test_iam_role   = local.create && var.create_test_iam_role
 
   partition = try(data.aws_partition.current[0].partition, "")

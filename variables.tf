@@ -447,6 +447,16 @@ variable "custom_oidc_thumbprints" {
   default     = []
 }
 
+variable "create_test_iam_role" {
+  description = "Create a test IAM role for access control testing"
+  type        = bool
+  default     = false
+}
+variable "create_test_iam_role" {
+  description = "Create a test IAM role for access control testing"
+  type        = bool
+  default     = false
+}
 ################################################################################
 # Cluster IAM Role
 ################################################################################

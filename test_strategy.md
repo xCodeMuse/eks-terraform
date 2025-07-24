@@ -279,11 +279,11 @@ module "eks" {
       instance_market_options = {
         market_type = "spot"
       }
-
-      min_size     = 1
-      max_size     = 3
-      desired_size = 1
     }
+
+    min_size     = 1
+    max_size     = 3
+    desired_size = 1
   }
 
   # Enable IRSA
@@ -396,22 +396,36 @@ module "eks" {
 
 ### Advanced Tests
 
-1. **Upgrade Scenarios**
+1. **HIPAA Compliance Tests**
+    - Verify encryption at rest (etcd) using KMS
+    - Verify encryption in transit (TLS) for all communication
+    - Verify access control by testing IAM role creation
+    - Verify data disposal (KMS key deletion window)
+    - Verify access logging (CloudWatch log group existence)
+
+2. **Upgrade Scenarios**
    - Test upgrading the Kubernetes version
    - Test upgrading node groups
    - Test upgrading add-ons
 
-2. **Failure Recovery**
+3. **Failure Recovery**
    - Test node failure recovery
    - Test control plane failure recovery
    - Test network partition scenarios
 
-3. **Security Tests**
+4. **Security Tests**
    - Verify security group configurations
    - Test network policy enforcement
    - Verify encryption configurations
 
 ## 10. Test Coverage and Gaps
+
+### HIPAA Compliance Coverage
+
+- Encryption at rest (etcd) using KMS
+- Encryption in transit (TLS) for all communication
+- Access control by testing IAM role creation
+- Access logging (CloudWatch log group existence)
 
 ### Coverage Areas
 
@@ -498,49 +512,9 @@ This test strategy provides a comprehensive approach to testing the AWS EKS Terr
 2. Develop Terratest scripts for end-to-end testing
 3. Set up CI/CD pipeline for automated testing
 4. Create detailed test cases based on the scenarios outlined in this document
-5. Develop a test report template for documenting test results
 
 ## Appendix A: Test Case Template
 
-```
-Test Case ID: TC-EKS-001
-Title: Basic EKS Cluster Creation
-Description: Verify that a basic EKS cluster can be created with default settings
-Prerequisites:
-  - AWS credentials with appropriate permissions
-  - Terraform installed
-  - VPC with appropriate subnets
-
-Steps:
-1. Initialize Terraform
-2. Apply Terraform configuration with basic EKS cluster
-3. Verify cluster creation
-4. Connect to cluster with kubectl
-5. Verify cluster functionality
-
-Expected Results:
-- Terraform apply completes successfully
-- EKS cluster is created with status "ACTIVE"
-- kubectl can connect to the cluster
-- System pods are running correctly
-
-Cleanup:
-- Destroy all created resources
-```
-
-## Appendix B: Test Environment Variables
-
-```
 # AWS Configuration
-export AWS_REGION=us-west-2
-export AWS_PROFILE=eks-testing
 
 # Terraform Variables
-export TF_VAR_cluster_name="test-eks-cluster"
-export TF_VAR_cluster_version="1.29"
-export TF_VAR_vpc_id="vpc-12345678"
-export TF_VAR_subnet_ids='["subnet-12345678", "subnet-87654321"]'
-
-# Test Configuration
-export TEST_TIMEOUT=30m
-export CLEANUP_RESOURCES=true

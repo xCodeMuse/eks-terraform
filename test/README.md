@@ -281,7 +281,7 @@ The test reports follow a standardized structure to ensure consistency and compl
 7. **Conclusion & Next Steps**: Summary of findings and recommendations
 8. **Appendices**: Test logs and verification commands
 
-For more information about test reports, see [REPORTS_README.md](./REPORTS_README.md).
+For more information about test reports, see [REPORTS_README.md](./QA_REPORTS_README.md).
 
 ## Managing Test Reports
 
